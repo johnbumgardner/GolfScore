@@ -1,6 +1,23 @@
 import boto3
+from flask import Flask, request, jsonify
+from PIL import Image
+
 
 bucket='photos-for-golf-scoring'
+app = Flask(__name__)
+
+@app.route("/detect_text", methods=["POST"])
+def process_image():
+    file = request.files['image']
+    img = Image.open(file.stream)
+    img.save("score_card.jpg")
+    text = detect_text("score_card.jpg")
+    player1 = text[0:9]
+    player2 = text[10:18]
+    sum1 = sum_player(player1)
+    sum2 = sum_player(player2)
+    return jsonify({'msg': 'success', 'player1_score': sum1, 'player2_score': sum2})
+
 
 def detect_text(photo):
     s3 = boto3.resource('s3')
@@ -25,15 +42,5 @@ def sum_player(scores):
         sum += int(i)
     return sum
 
-def main():
-    photo='score_card.jpg'
-    text_count = detect_text(photo)
-    player1 = text_count[0:9]
-    player2 = text_count[10:18]
-    sum1 = sum_player(player1)
-    sum2 = sum_player(player2)
-    print(sum1)
-    print(sum2)
-
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
